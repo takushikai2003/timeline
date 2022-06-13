@@ -1,7 +1,5 @@
 //TODO:
-//クリップサイズ変更
 //トラック拡大縮小
-//再生ヘッド表示
 //複数トラック対応
 //undo,redoはトラックごとスタックするだけで出来る
 //tarckはtargetTrackにしなければ
@@ -11,8 +9,17 @@ const clipConfig = {
     height: 30,
     startlineWidth: 3,
     endlineWidth: 3,
+    minDuration: 3,
     // overlap: false,//クリップの重なりを許容するか
-    autoRipple: false,//未
+    // autoRipple: false,//未
+}
+
+//未使用
+const playhead = {
+    x: 0,//変更を適用するには、refreshTimeline()が必須
+    width: 3,
+    height: 60,
+    color: "gray",
 }
 
 const clip1 = {
@@ -90,7 +97,6 @@ canvas.addEventListener("mousedown", (e) => {
     // クリック判定処理
     //まずはどのトラック上にいるか
     const trackNo = Math.floor(point.y / clipConfig.height);
-
     
     if(track.trackNo == trackNo){
         targetTrack = track;
@@ -145,6 +151,12 @@ window.addEventListener("mousemove",(e)=>{
 
     //カーソル変更
     if(targetClip == null){
+        const trackNo = Math.floor(point.y / clipConfig.height);
+        if(track.trackNo != trackNo){//トラック上になければ
+            document.documentElement.style.cursor = "auto";
+            return;
+        }
+
         for(let i=0; i<track.clips.length; i++){
             const clip = track.clips[i];
             const x = clip.start.time;
@@ -171,11 +183,32 @@ window.addEventListener("mousemove",(e)=>{
         return;
     }
 
-    
-    //マウスに付いて移動
-    targetClip.start.time = point.x;
 
-    // console.log(isCollisionX(track.clips[1],track.clips[2]));
+    if(!startlineResize && !endlineResize){
+        //マウスに付いて移動
+        targetClip.start.time = point.x;
+    }
+    else{
+        //リサイズ
+        if(startlineResize){
+            const duration = point.x - targetClip.start.time;
+            targetClip.start.time = targetClip.start.time + duration;
+            targetClip.duration = targetClip.duration - duration;
+
+            if(targetClip.duration < clipConfig.minDuration){
+                targetClip.duration = clipConfig.minDuration;
+            }
+        }
+        else{
+            const duration = point.x - (targetClip.start.time + targetClip.duration);
+            targetClip.duration = targetClip.duration + duration;
+
+            if(targetClip.duration < clipConfig.minDuration){
+                targetClip.duration = clipConfig.minDuration;
+            }
+        }
+    }
+    
 
     refreshTimeline();
 });
@@ -227,7 +260,6 @@ window.addEventListener("mouseup",(e)=>{
             afterClip = track.clips[targetClipIndex +1];
 
             if(isCollisionX(targetClip, beforeClip)){
-                console.log("移動")
                 slideAfterClips(track, targetClipIndex-1);
             }
         }
@@ -297,6 +329,23 @@ function slideAfterClips(track, targetClipIndex){
     }
 }
 
+//X軸方向の衝突判定
+function isCollisionX(clip1, clip2){
+    if(clip1 == undefined || clip2 == undefined){
+        return false;
+    }
+
+    if(
+        (clip1.start.time <= clip2.start.time && clip1.start.time+clip1.duration >= clip2.start.time) ||
+        (clip2.start.time <= clip1.start.time && clip2.start.time+clip2.duration >= clip1.start.time)
+    ){
+        return true;
+    }
+    else{
+        return false;
+    }
+}
+
 
 //クリップを描画
 function drawClip(clip, trackNo=0){
@@ -315,6 +364,7 @@ function drawClip(clip, trackNo=0){
     ctx.fillRect(x + w - clipConfig.endlineWidth,  y,  clipConfig.endlineWidth, h);
 }
 
+
 //画面を更新
 function refreshTimeline(){
     ctx.clearRect(0,0, canvas.clientWidth, canvas.height);
@@ -328,23 +378,10 @@ function refreshTimeline(){
         //targetClipをもう一度描画して、前面に表示
         drawClip(targetClip);
     }
-}
-
-//X軸方向の衝突判定
-function isCollisionX(clip1, clip2){
-    if(clip1 == undefined || clip2 == undefined){
-        return false;
-    }
-
-    if(
-        (clip1.start.time <= clip2.start.time && clip1.start.time+clip1.duration >= clip2.start.time) ||
-        (clip2.start.time <= clip1.start.time && clip2.start.time+clip2.duration >= clip1.start.time)
-    ){
-        return true;
-    }
-    else{
-        return false;
-    }
+    
+    //playheadを描画
+    // ctx.fillStyle = playhead.color;
+    // ctx.fillRect(playhead.x, 0, playhead.width, playhead.height);
 }
 
 refreshTimeline();
