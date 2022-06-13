@@ -1,4 +1,5 @@
 //TODO:
+//maxwidth
 //トラック拡大縮小
 //複数トラック対応
 //undo,redoはトラックごとスタックするだけで出来る
@@ -78,6 +79,7 @@ const track = {
 
 const canvas = document.getElementById("timeline_canvas");
 const ctx = canvas.getContext("2d");
+canvas.width = 1000;
 
 
 let targetTrack = null;
