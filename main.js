@@ -80,6 +80,7 @@ const track = {
 const canvas = document.getElementById("timeline_canvas");
 const ctx = canvas.getContext("2d");
 canvas.width = 1000;
+canvas.height = clipConfig.height;
 
 
 let targetTrack = null;
